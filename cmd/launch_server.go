@@ -60,32 +60,50 @@ func handlerPurchaseCard(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&par1)
 	if err != nil {
 		log.Println(err)
+		return
 	}
-	fmt.Println("params=", par1)
+	log.Println("params=", par1)
 
 	// инициализация списка всех доступных карт
 	crds := card.InitCardsHW11()
+	log.Println("cards inited")
+
 	// проверка card_type и card_issuer
 	errCT, errCI := card.CheckCardTypeCardIssuer(par1.CardType, par1.CardIssuer)
+	//log.Println(errCT, errCI)
 	if errCT != nil {
 		log.Println(errCT)
+		http.Error(w, "card type invalid", 400)
+		return
 	}
 	if errCI != nil {
 		log.Println(errCI)
+		http.Error(w, "card issuer invalid", 400)
+		return
 	}
+
 	// проверка UserID
 	fmt.Println("check UserID")
 	err = card.CheckUserID(crds, par1.UserID)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
+		http.Error(w, fmt.Sprintf("user %v does not exist", par1.UserID), 400)
+		return
 	}
+	// если юзер есть - получение списка всех его карт
+	crdsUser := card.ReturnCardsByUserID(par1.UserID, crds)
+
 	// добавление новой карты в список карт
-	crds = card.AddParamCardToCardslice(crds, par1.CardType, par1.CardIssuer, par1.UserID)
+	mxid := card.GetMaxIDFromcards(crds)
+	crdsUserNew := card.AddParamCardToCardslice(crdsUser, par1.CardType, par1.CardIssuer, par1.UserID, mxid)
 	fmt.Println("updated card list:")
-	for _, v := range crds {
+	for _, v := range crdsUserNew {
 		fmt.Println(v)
 	}
 }
+
+const defaultPort = "9999"
+const defaultHost = "0.0.0.0"
 
 // ==========================================
 func main() {
@@ -94,6 +112,7 @@ func main() {
 			fmt.Println(err)
 		}
 	}()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/echo", handlerEcho)
 	mux.HandleFunc("/purchaseCard", handlerPurchaseCard)

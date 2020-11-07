@@ -1,0 +1,20 @@
+
+# успешное выполнение
+curl --header "Content-Type: application/json" \
+--request POST --data '{"card_type": "virtual", "card_issuer": "Visa", "user_id": 2}' \
+http://0.0.0.0:9999/purchaseCard
+
+# ошибка - невалидный тип карты
+curl --header "Content-Type: application/json" --request POST \
+--data '{"card_type": "virtual2", "card_issuer": "Visa", "user_id": 1}' \
+http://0.0.0.0:9999/purchaseCard
+
+# ошибка - невалидный card issuer
+curl --header "Content-Type: application/json" --request POST \
+--data '{"card_type": "virtual", "card_issuer": "Visa2", "user_id": 1}' \
+http://0.0.0.0:9999/purchaseCard
+
+# ошибка - user не найден
+curl --header "Content-Type: application/json" --request POST \
+--data '{"card_type": "virtual", "card_issuer": "Visa", "user_id": 555}' \
+http://0.0.0.0:9999/purchaseCard

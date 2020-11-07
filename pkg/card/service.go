@@ -646,8 +646,21 @@ func InitCardsHW11() []*Card {
 	card41 := &Card{ID: 9, Type: "UnionPay", BankName: "Citi", CardNumber: "1111 2222 3333 4444", Balance: 20_000_00, CardDueDate: "2030-01-01", UserID: 4}
 
 	allCards = append(allCards, card11, card12, card21, card22, card23, card31, card32, card33, card41)
-	fmt.Println("cards inited")
+	//
 	return allCards
+}
+
+// ReturnCardsByUserID -
+func ReturnCardsByUserID(userID int64, allCards []*Card) []*Card {
+	// отбор карт по параметру ID пользователя
+	userCards := make([]*Card, 0)
+	for _, v := range allCards {
+		if v.UserID == userID {
+			userCards = append(userCards, v)
+		}
+	}
+	// возвращаем карты пользователя
+	return userCards
 }
 
 // Find - понять ест элемент в слайсе или нет
@@ -705,22 +718,34 @@ func CheckUserID(crds []*Card, uid int64) error {
 	}
 }
 
+// GetMaxIDFromcards -
+func GetMaxIDFromcards(crds []*Card) int64 {
+	var newmxid int64 = crds[0].ID
+	for _, v := range crds {
+		if v.ID > newmxid {
+			newmxid = v.ID
+		}
+	}
+	// макс.значение +1
+	return newmxid + 1
+}
+
 // AddParamCardToCardslice -
-func AddParamCardToCardslice(crds []*Card, cardtype string, cardissuer string, userid int64) []*Card {
+func AddParamCardToCardslice(crds []*Card, cardtype string, cardissuer string, userid int64, cardID int64) []*Card {
 	if cardtype == "plastic" {
 		c := &Card{
-			ID: 1, Type: cardissuer, BankName: "Tinkoff", CardNumber: "0000 0000 0000 0000",
+			ID: cardID, Type: cardissuer, BankName: "Tinkoff", CardNumber: "0000 0000 0000 0000",
 			Balance: 0, CardDueDate: "2030-01-01", UserID: userid, IsVirtual: false,
 		}
 		crds = append(crds, c)
 	}
 	if cardtype == "virtual" {
 		c := &Card{
-			ID: 1, Type: cardissuer, BankName: "Tinkoff", CardNumber: "0000 0000 0000 0000",
+			ID: cardID, Type: cardissuer, BankName: "Tinkoff", CardNumber: "0000 0000 0000 0000",
 			Balance: 0, CardDueDate: "2030-01-01", UserID: userid, IsVirtual: true,
 		}
 		crds = append(crds, c)
 	}
-	fmt.Println(crds)
+	//fmt.Println(crds)
 	return crds
 }
