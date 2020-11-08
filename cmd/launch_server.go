@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/wool/go2hw11/pkg/card"
@@ -102,6 +103,24 @@ func handlerPurchaseCard(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handlerGetUserCards -
+func handlerGetUserCards(w http.ResponseWriter, r *http.Request) {
+	crds := card.InitCardsHW11()
+	// получение параметра из query
+	userID := r.URL.Query()["userID"][0]
+	userID2, err := strconv.ParseInt(userID, 10, 64)
+	err = card.CheckUserID(crds, userID2)
+	if err != nil {
+		//log.Println(err)
+		http.Error(w, fmt.Sprintf("user %v does not exist", userID2), 400)
+		return
+	}
+	crdsUser := card.ReturnCardsByUserID(userID2, crds)
+	fmt.Println(crdsUser)
+	outCrdUsr, err := json.Marshal(crdsUser)
+	_, err = w.Write([]byte(outCrdUsr))
+}
+
 const defaultPort = "9999"
 const defaultHost = "0.0.0.0"
 
@@ -116,6 +135,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/echo", handlerEcho)
 	mux.HandleFunc("/purchaseCard", handlerPurchaseCard)
+	mux.HandleFunc("/getusercards/", handlerGetUserCards)
 	server := &http.Server{
 		Addr:    "0.0.0.0:9999",
 		Handler: mux,
