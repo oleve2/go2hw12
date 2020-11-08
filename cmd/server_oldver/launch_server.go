@@ -118,6 +118,8 @@ func handlerGetUserCards(w http.ResponseWriter, r *http.Request) {
 	crdsUser := card.ReturnCardsByUserID(userID2, crds)
 	fmt.Println(crdsUser)
 	outCrdUsr, err := json.Marshal(crdsUser)
+	//
+	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write([]byte(outCrdUsr))
 }
 

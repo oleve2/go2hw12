@@ -18,3 +18,6 @@ http://0.0.0.0:9999/purchaseCard
 curl --header "Content-Type: application/json" --request POST \
 --data '{"card_type": "virtual", "card_issuer": "Visa", "user_id": 555}' \
 http://0.0.0.0:9999/purchaseCard
+
+#
+curl http://0.0.0.0:9999/getusercards/?userID=2

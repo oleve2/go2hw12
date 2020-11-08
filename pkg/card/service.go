@@ -47,10 +47,16 @@ type Transactions struct {
 	Transactions []*Transaction `xml:"transaction"`
 }
 
-// Service - итоговый сервис для передачи во вне
+// Service - для сервера карт - инициализация при старте
 type Service struct {
-	BankName string
-	Cards    []*Card
+	//BankName string
+	mu    sync.RWMutex
+	Cards []*Card
+}
+
+// NewService -
+func NewService() *Service {
+	return &Service{}
 }
 
 // SearchByNumber - поиск карты в сервисе по её номеру (возвращаем её номер в списке карт)
