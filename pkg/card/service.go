@@ -632,9 +632,12 @@ func InitCardsHW11() []*Card {
 	return allCards
 }
 
-func ReturnCardsByUserID(userID int64, allCards []*Card) []*Card {
+func (s *Service) ReturnCardsByUserID(userID int64, allCards []*Card) []*Card {
 	// отбор карт по параметру ID пользователя
 	userCards := make([]*Card, 0)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	for _, v := range allCards {
 		if v.UserID == userID {
 			userCards = append(userCards, v)
@@ -657,18 +660,13 @@ var CardTypes = []string{"plastic", "virtual"}
 var CardIssuer = []string{"Master", "Visa", "UnionPay"}
 
 func CheckCardTypeCardIssuer(ct string, ci string) error {
-	_, flgCT := Find(CardTypes, ct)
-	_, flgCI := Find(CardIssuer, ci)
-
-	var err error
-	err = nil
-	if flgCT != true {
-		err = ErrInvaildCardType
+	if _, ok := Find(CardTypes, ct); !ok {
+		return ErrInvaildCardType
 	}
-	if flgCI != true {
-		err = ErrInvaildCardIssuer
+	if _, ok := Find(CardIssuer, ci); !ok {
+		return ErrInvaildCardIssuer
 	}
-	return err
+	return nil
 }
 
 func CheckUserID(crds []*Card, uid int64) error {
@@ -698,7 +696,9 @@ func GetMaxIDFromcards(crds []*Card) int64 {
 	return newmxid + 1
 }
 
-func AddParamCardToCardslice(crds []*Card, cardtype string, cardissuer string, userid int64, cardID int64) []*Card {
+func (s *Service) AddParamCardToCardslice(crds []*Card, cardtype string, cardissuer string, userid int64, cardID int64) []*Card {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if cardtype == "plastic" {
 		c := &Card{
 			ID: cardID, Type: cardissuer, BankName: "Tinkoff", CardNumber: "0000 0000 0000 0000",
@@ -713,6 +713,5 @@ func AddParamCardToCardslice(crds []*Card, cardtype string, cardissuer string, u
 		}
 		crds = append(crds, c)
 	}
-	//fmt.Println(crds)
 	return crds
 }

@@ -86,7 +86,7 @@ func (s *Server) handlerPurchaseCard(w http.ResponseWriter, r *http.Request) {
 
 	//
 	mxid := card.GetMaxIDFromcards(s.cardSvc.Cards)
-	s.cardSvc.Cards = card.AddParamCardToCardslice(s.cardSvc.Cards, qparams.CardType, qparams.CardIssuer, qparams.UserID, mxid)
+	s.cardSvc.Cards = s.cardSvc.AddParamCardToCardslice(s.cardSvc.Cards, qparams.CardType, qparams.CardIssuer, qparams.UserID, mxid)
 }
 
 // ----------------------------------------------------------------
@@ -111,12 +111,12 @@ func (s *Server) handlerGetUserCards(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("user %v does not exist", userID2), 400)
 		return
 	}
-	crdsUser := card.ReturnCardsByUserID(userID2, s.cardSvc.Cards)
+	crdsUser := s.cardSvc.ReturnCardsByUserID(userID2, s.cardSvc.Cards)
 	crdsUserStruct := &userCards{CardsLength: int64(len(crdsUser)), Cards: crdsUser}
 
 	crdsUserStructJSON, err := json.Marshal(crdsUserStruct)
 	if err != nil {
-		http.Error(w, "500 Internal Server Error", 500)
+		log.Println(err.Error())
 		return
 	}
 	//
