@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,7 +17,6 @@ import (
 	"time"
 )
 
-// Card - тип единичной карты
 type Card struct {
 	ID           int64
 	Type         string
@@ -29,7 +29,6 @@ type Card struct {
 	Transactions []*Transaction
 }
 
-// Transaction - Transaction
 type Transaction struct {
 	XMLName  string `xml:"transaction"`              //
 	ID       int64  `json:"id" xml:"id"`             //
@@ -41,25 +40,21 @@ type Transaction struct {
 	OwnerID  int64  `json:"ownerid" xml:"ownerid"`   //
 }
 
-// Transactions -
 type Transactions struct {
 	XMLName      string         `xml:"transactions"`
 	Transactions []*Transaction `xml:"transaction"`
 }
 
-// Service - для сервера карт - инициализация при старте
 type Service struct {
 	//BankName string
 	mu    sync.RWMutex
 	Cards []*Card
 }
 
-// NewService -
 func NewService() *Service {
 	return &Service{}
 }
 
-// SearchByNumber - поиск карты в сервисе по её номеру (возвращаем её номер в списке карт)
 func (s *Service) SearchByNumber(number string) (*Card, bool) {
 	for _, card := range s.Cards {
 		if card.CardNumber == number {
@@ -69,12 +64,10 @@ func (s *Service) SearchByNumber(number string) (*Card, bool) {
 	return nil, false
 }
 
-// AddTransaction - добавление транцакции
 func AddTransaction(card *Card, transaction *Transaction) {
 	card.Transactions = append(card.Transactions, transaction)
 }
 
-// функция проверки вхождения
 func valInSlice(val string, arr []string) bool {
 	for _, v := range arr {
 		if v == val {
@@ -95,14 +88,12 @@ func SumByMCC(transactions []*Transaction, mcc []string) int64 {
 	return totalMcc
 }
 
-// PrintCardTrans -
 func PrintCardTrans(c *Card) {
 	for _, v := range c.Transactions {
 		fmt.Println(v.ID, v.TranDate, v.TranSum, v.TranType, v.MccCode, v.Status)
 	}
 }
 
-// SortSlice -
 func SortSlice(c *Card, asc bool) {
 	if asc == true {
 		sort.SliceStable(c.Transactions, func(i, j int) bool { return c.Transactions[i].TranSum < c.Transactions[j].TranSum })
@@ -111,7 +102,6 @@ func SortSlice(c *Card, asc bool) {
 	}
 }
 
-// Sum - подсчет суммы транзакций
 func Sum(transactions []int64) int64 {
 	var res int64 = 0
 	for _, v := range transactions {
@@ -120,7 +110,6 @@ func Sum(transactions []int64) int64 {
 	return res
 }
 
-// MakeTransMap -
 func MakeTransMap(trans []*Transaction) map[string][]int64 {
 	var mp = make(map[string][]int64)
 	for _, v := range trans {
@@ -129,16 +118,15 @@ func MakeTransMap(trans []*Transaction) map[string][]int64 {
 
 		var key string
 		if len(m) == 1 {
-			key = y + " 0" + m
+			key = fmt.Sprintf("%s %s", y, m)
 		} else if len(m) == 2 {
-			key = y + " " + m
+			key = fmt.Sprintf("%s 0%s", y, m)
 		}
 		mp[key] = append(mp[key], v.TranSum)
 	}
 	return mp
 }
 
-// SumConcurrently -
 func SumConcurrently(trans []*Transaction, goroutines int) int64 {
 	transMap := MakeTransMap(trans)
 
@@ -345,7 +333,6 @@ OwnerID  int64
 
 */
 
-// MapRowToTransaction - конвертация в тип Transaction
 func MapRowToTransaction(s [][]string) []*Transaction {
 	trans := make([]*Transaction, 0)
 	for _, v := range s {
@@ -373,7 +360,6 @@ func MapRowToTransaction(s [][]string) []*Transaction {
 	return trans
 }
 
-// ExportToCSV - export to csv
 func ExportToCSV(tr []*Transaction, exportPath string) error {
 	if len(tr) == 0 {
 		return nil
@@ -410,7 +396,6 @@ func ExportToCSV(tr []*Transaction, exportPath string) error {
 	return nil
 }
 
-// ImportFromCSV - import from csv
 func ImportFromCSV(importPath string) ([]*Transaction, error) {
 	file, err := os.Open(importPath)
 	if err != nil {
@@ -443,7 +428,6 @@ func ImportFromCSV(importPath string) ([]*Transaction, error) {
 	return transConv, nil
 }
 
-// ExporttoJSON - export to json
 func ExporttoJSON(tr []*Transaction, exportPath string) error {
 	if len(tr) == 0 {
 		return nil
@@ -461,7 +445,6 @@ func ExporttoJSON(tr []*Transaction, exportPath string) error {
 	return nil
 }
 
-// ImportFromJSON - import from json
 func ImportFromJSON(importPath string) ([]*Transaction, error) {
 	file, err := os.Open(importPath)
 	if err != nil {
@@ -489,7 +472,6 @@ func ImportFromJSON(importPath string) ([]*Transaction, error) {
 	return decoded, nil
 }
 
-// ExportXML -
 func ExportXML(tr []*Transaction, exportPath string) error {
 	if len(tr) == 0 {
 		return nil
@@ -510,7 +492,6 @@ func ExportXML(tr []*Transaction, exportPath string) error {
 	return nil
 }
 
-// ImportXML -
 func ImportXML(importPath string) ([]*Transaction, error) {
 	file, err := os.Open(importPath)
 	if err != nil {
@@ -541,7 +522,6 @@ func ImportXML(importPath string) ([]*Transaction, error) {
 	return trans, nil
 }
 
-// MakeCSV - HW9 - make csv
 func MakeCSV(tr []*Transaction) ([]byte, error) {
 	if len(tr) == 0 {
 		return nil, fmt.Errorf("transaction slice is empty")
@@ -566,7 +546,6 @@ func MakeCSV(tr []*Transaction) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// MakeJSON -
 func MakeJSON(tr []*Transaction) ([]byte, error) {
 	if len(tr) == 0 {
 		return nil, nil
@@ -579,7 +558,6 @@ func MakeJSON(tr []*Transaction) ([]byte, error) {
 	return encData, nil
 }
 
-// MakeXML -
 func MakeXML(tr []*Transaction) ([]byte, error) {
 	if len(tr) == 0 {
 		return nil, nil
@@ -621,21 +599,19 @@ func InitCard() *Card {
 go2hw11 - функционал для сервера заказа пластиковых/виртуальных карт
 */
 
-// кастомные ошибки
 var (
-	ErrCardFromBalanceLessThenAmount = fmt.Errorf("CardFrom balance < amount")
-	ErrBothCardsNotFound             = fmt.Errorf("CardFrom and CardTo not found")
-	ErrCardFromNotFound              = fmt.Errorf("CardFrom not found")
-	ErrCardToNotFound                = fmt.Errorf("CardTo not found")
-	ErrInvalidCardFromNumber         = fmt.Errorf("CardFrom number is not valid")
-	ErrInvalidCardToNumber           = fmt.Errorf("CardTo number is not valid")
+	ErrCardFromBalanceLessThenAmount = errors.New("CardFrom balance < amount")
+	ErrBothCardsNotFound             = errors.New("CardFrom and CardTo not found")
+	ErrCardFromNotFound              = errors.New("CardFrom not found")
+	ErrCardToNotFound                = errors.New("CardTo not found")
+	ErrInvalidCardFromNumber         = errors.New("CardFrom number is not valid")
+	ErrInvalidCardToNumber           = errors.New("CardTo number is not valid")
 
-	ErrInvaildCardType   = fmt.Errorf("Card Type is not valid")
-	ErrInvaildCardIssuer = fmt.Errorf("Card Issuer is not valid")
-	ErrNoCardWithUserID  = fmt.Errorf("Cards with such UserID are not found")
+	ErrInvaildCardType   = errors.New("Card Type is not valid")
+	ErrInvaildCardIssuer = errors.New("Card Issuer is not valid")
+	ErrNoCardWithUserID  = errors.New("Cards with such UserID are not found")
 )
 
-// InitCardsHW11 -
 func InitCardsHW11() []*Card {
 	allCards := make([]*Card, 0)
 	card11 := &Card{ID: 1, Type: "Master", BankName: "Citi", CardNumber: "1111 2222 3333 4444", Balance: 20_000_00, CardDueDate: "2030-01-01", UserID: 1}
@@ -656,7 +632,6 @@ func InitCardsHW11() []*Card {
 	return allCards
 }
 
-// ReturnCardsByUserID -
 func ReturnCardsByUserID(userID int64, allCards []*Card) []*Card {
 	// отбор карт по параметру ID пользователя
 	userCards := make([]*Card, 0)
@@ -665,11 +640,9 @@ func ReturnCardsByUserID(userID int64, allCards []*Card) []*Card {
 			userCards = append(userCards, v)
 		}
 	}
-	// возвращаем карты пользователя
 	return userCards
 }
 
-// Find - понять ест элемент в слайсе или нет
 func Find(slice []string, val string) (int, bool) {
 	for i, item := range slice {
 		if item == val {
@@ -679,35 +652,25 @@ func Find(slice []string, val string) (int, bool) {
 	return -1, false
 }
 
-// CardTypes - доступные значения
 var CardTypes = []string{"plastic", "virtual"}
 
-// CardIssuer - доступные значения
 var CardIssuer = []string{"Master", "Visa", "UnionPay"}
 
-// CheckCardTypeCardIssuer -
-func CheckCardTypeCardIssuer(ct string, ci string) (error, error) {
-	//fmt.Println(CardTypes)
+func CheckCardTypeCardIssuer(ct string, ci string) error {
 	_, flgCT := Find(CardTypes, ct)
 	_, flgCI := Find(CardIssuer, ci)
 
-	var retCT, retCI error
-	if flgCT == true {
-		retCT = nil
-	} else {
-		retCT = ErrInvaildCardType
+	var err error
+	err = nil
+	if flgCT != true {
+		err = ErrInvaildCardType
 	}
-
-	if flgCI == true {
-		retCI = nil
-	} else {
-		retCI = ErrInvaildCardIssuer
+	if flgCI != true {
+		err = ErrInvaildCardIssuer
 	}
-
-	return retCT, retCI
+	return err
 }
 
-// CheckUserID - пройтись по слайсу карт и проверить - есть ли у юзера с UserID вообще карты
 func CheckUserID(crds []*Card, uid int64) error {
 	var found bool
 	found = false
@@ -724,7 +687,6 @@ func CheckUserID(crds []*Card, uid int64) error {
 	}
 }
 
-// GetMaxIDFromcards -
 func GetMaxIDFromcards(crds []*Card) int64 {
 	var newmxid int64 = crds[0].ID
 	for _, v := range crds {
@@ -736,7 +698,6 @@ func GetMaxIDFromcards(crds []*Card) int64 {
 	return newmxid + 1
 }
 
-// AddParamCardToCardslice -
 func AddParamCardToCardslice(crds []*Card, cardtype string, cardissuer string, userid int64, cardID int64) []*Card {
 	if cardtype == "plastic" {
 		c := &Card{
