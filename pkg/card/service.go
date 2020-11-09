@@ -46,17 +46,34 @@ type Transactions struct {
 }
 
 type Service struct {
-	//BankName string
 	mu    sync.RWMutex
-	Cards []*Card
+	cards []*Card
 }
 
 func NewService() *Service {
 	return &Service{}
 }
 
+func (s *Service) AddCard(card *Card) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.cards = append(s.cards, card)
+}
+
+func (s *Service) GetCards() []*Card {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.cards
+}
+
+func (s *Service) SetCards(cards []*Card) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.cards = cards
+}
+
 func (s *Service) SearchByNumber(number string) (*Card, bool) {
-	for _, card := range s.Cards {
+	for _, card := range s.GetCards() {
 		if card.CardNumber == number {
 			return card, true
 		}
@@ -632,12 +649,9 @@ func InitCardsHW11() []*Card {
 	return allCards
 }
 
-func (s *Service) ReturnCardsByUserID(userID int64, allCards []*Card) []*Card {
+func ReturnCardsByUserID(userID int64, allCards []*Card) []*Card {
 	// отбор карт по параметру ID пользователя
 	userCards := make([]*Card, 0)
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
 	for _, v := range allCards {
 		if v.UserID == userID {
 			userCards = append(userCards, v)
@@ -696,9 +710,7 @@ func GetMaxIDFromcards(crds []*Card) int64 {
 	return newmxid + 1
 }
 
-func (s *Service) AddParamCardToCardslice(crds []*Card, cardtype string, cardissuer string, userid int64, cardID int64) []*Card {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func AddParamCardToCardslice(crds []*Card, cardtype string, cardissuer string, userid int64, cardID int64) []*Card {
 	if cardtype == "plastic" {
 		c := &Card{
 			ID: cardID, Type: cardissuer, BankName: "Tinkoff", CardNumber: "0000 0000 0000 0000",

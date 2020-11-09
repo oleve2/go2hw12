@@ -35,7 +35,8 @@ func main() {
 
 func execute(addr string) (err error) {
 	cardSvc := card.NewService()
-	cardSvc.Cards = card.InitCardsHW11() // инициализация карт - один раз при запуске приложения
+	cardSvc.SetCards(card.InitCardsHW11()) // инициализация карт - один раз при запуске приложения
+
 	mux := http.NewServeMux()
 	application := app.NewServer(cardSvc, mux)
 	application.Init()
