@@ -78,15 +78,15 @@ func (s *Server) handlerPurchaseCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//
-	err = card.CheckUserID(s.cardSvc.Cards, qparams.UserID)
+	err = card.CheckUserID(s.cardSvc.GetCards(), qparams.UserID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("user %v does not exist", qparams.UserID), 400)
 		return
 	}
 
 	//
-	mxid := card.GetMaxIDFromcards(s.cardSvc.Cards)
-	s.cardSvc.Cards = s.cardSvc.AddParamCardToCardslice(s.cardSvc.Cards, qparams.CardType, qparams.CardIssuer, qparams.UserID, mxid)
+	mxid := card.GetMaxIDFromcards(s.cardSvc.GetCards())
+	s.cardSvc.SetCards(card.AddParamCardToCardslice(s.cardSvc.GetCards(), qparams.CardType, qparams.CardIssuer, qparams.UserID, mxid))
 }
 
 // ----------------------------------------------------------------
@@ -106,16 +106,17 @@ func (s *Server) handlerGetUserCards(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "userid not parsed to int64", 400)
 		return
 	}
-	err = card.CheckUserID(s.cardSvc.Cards, userID2)
+	err = card.CheckUserID(s.cardSvc.GetCards(), userID2)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("user %v does not exist", userID2), 400)
 		return
 	}
-	crdsUser := s.cardSvc.ReturnCardsByUserID(userID2, s.cardSvc.Cards)
+	crdsUser := card.ReturnCardsByUserID(userID2, s.cardSvc.GetCards())
 	crdsUserStruct := &userCards{CardsLength: int64(len(crdsUser)), Cards: crdsUser}
 
 	crdsUserStructJSON, err := json.Marshal(crdsUserStruct)
 	if err != nil {
+		http.Error(w, "500 Internal Server Error", 500)
 		log.Println(err.Error())
 		return
 	}
