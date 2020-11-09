@@ -70,69 +70,74 @@ type PurchaseCardParams struct {
 // HandlerPurchaseCard -
 func (s *Server) handlerPurchaseCard(w http.ResponseWriter, r *http.Request) {
 	// получение параметров из request.Body (передаются в json)
-	var par1 PurchaseCardParams
-	err := json.NewDecoder(r.Body).Decode(&par1)
+	var qparams PurchaseCardParams
+	err := json.NewDecoder(r.Body).Decode(&qparams)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	log.Println("params=", par1)
+	log.Println("params=", qparams)
 
-	// инициализация списка всех доступных карт
-	//crds := s.cardSvc.Cards //card.InitCardsHW11()
-	//log.Println("cards loaded from svc")
-
+	// инициализация списка карт в cardserver.execute
 	// проверка card_type и card_issuer
-	errCT, errCI := card.CheckCardTypeCardIssuer(par1.CardType, par1.CardIssuer)
-	//log.Println(errCT, errCI)
-	if errCT != nil {
-		log.Println(errCT)
+	errCardType, errCardIssuer := card.CheckCardTypeCardIssuer(qparams.CardType, qparams.CardIssuer)
+	if errCardType != nil {
+		log.Println(errCardType)
 		http.Error(w, "card type invalid", 400)
 		return
 	}
-	if errCI != nil {
-		log.Println(errCI)
+	if errCardIssuer != nil {
+		log.Println(errCardIssuer)
 		http.Error(w, "card issuer invalid", 400)
 		return
 	}
 
 	// проверка UserID
-	fmt.Println("check UserID")
-	err = card.CheckUserID(s.cardSvc.Cards, par1.UserID) // crds
+	err = card.CheckUserID(s.cardSvc.Cards, qparams.UserID)
 	if err != nil {
-		//log.Println(err)
-		http.Error(w, fmt.Sprintf("user %v does not exist", par1.UserID), 400)
+		http.Error(w, fmt.Sprintf("user %v does not exist", qparams.UserID), 400)
 		return
 	}
-	// если юзер есть - получение списка всех его карт
-	//crdsUser := card.ReturnCardsByUserID(par1.UserID, s.cardSvc.Cards)
 
 	// добавление новой карты в список карт
 	mxid := card.GetMaxIDFromcards(s.cardSvc.Cards)
-	s.cardSvc.Cards = card.AddParamCardToCardslice(s.cardSvc.Cards, par1.CardType, par1.CardIssuer, par1.UserID, mxid)
-	fmt.Println("updated card list:")
-	for _, v := range s.cardSvc.Cards { // crdsUserNew
-		fmt.Println(v)
-	}
+	s.cardSvc.Cards = card.AddParamCardToCardslice(s.cardSvc.Cards, qparams.CardType, qparams.CardIssuer, qparams.UserID, mxid)
+	/*
+		for _, v := range s.cardSvc.Cards {
+			fmt.Println(v)
+		}
+	*/
 }
 
 // ----------------------------------------------------------------
+// формат отдачи ответа
+type userCards struct {
+	CardsLength int64
+	Cards       []*card.Card
+}
+
 // handlerGetUserCards -
 func (s *Server) handlerGetUserCards(w http.ResponseWriter, r *http.Request) {
-	//crds := s.cardSvc.Cards //card.InitCardsHW11()
-	// получение параметра из query
-	userID := r.URL.Query()["userID"][0]
+	userID := r.URL.Query().Get("userID")
 	userID2, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		http.Error(w, "userid not parsed to int64", 400)
+		return
+	}
 	err = card.CheckUserID(s.cardSvc.Cards, userID2)
 	if err != nil {
-		//log.Println(err)
 		http.Error(w, fmt.Sprintf("user %v does not exist", userID2), 400)
 		return
 	}
 	crdsUser := card.ReturnCardsByUserID(userID2, s.cardSvc.Cards)
-	fmt.Println(crdsUser)
-	outCrdUsr, err := json.Marshal(crdsUser)
+	crdsUserStruct := &userCards{CardsLength: int64(len(crdsUser)), Cards: crdsUser}
+
+	crdsUserStructJSON, err := json.Marshal(crdsUserStruct)
+	if err != nil {
+		http.Error(w, "error - userid cards not converted to json", 400)
+		return
+	}
 	//
 	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write([]byte(outCrdUsr))
+	_, err = w.Write([]byte(crdsUserStructJSON))
 }
