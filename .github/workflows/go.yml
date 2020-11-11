@@ -34,7 +34,7 @@ jobs:
       # добавили всё, что ниже
 
       - name: Build binary for docker image
-        run: go build -v -o bank ./cmd/server_new
+        run: go build -v -o server_new ./cmd/server_new
         env:
           CGO_ENABLED: 0
 
