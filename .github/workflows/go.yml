@@ -30,3 +30,22 @@ jobs:
 
       - name: Test
         run: go test -v ./...
+
+      # добавили всё, что ниже
+
+      - name: Build binary for docker image
+        run: go build -v -o bank ./cmd/server_new
+        env:
+          CGO_ENABLED: 0
+
+      - name: List
+        run: ls -la
+
+      - name: Push to GitHub Packages
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: docker.pkg.github.com
+          repository: oleve2/go2hw12/server_new
+          tag_with_ref: true
